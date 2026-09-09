@@ -39,6 +39,28 @@ on:
         required: false
         type: boolean
         default: false
+      prod_install_cmd:
+        description: >-
+          Optionnel. À renseigner UNIQUEMENT si install_cmd installe plus que
+          ce que la VM installera en production (ex. requirements-dev.txt
+          avec pytest, alors que la VM fait pip install -r requirements.txt).
+          Rejoue cette commande dans un venv isolé, vide autrement — sert de
+          filet pour prod_check_cmd. Laisser vide si install_cmd == les deps
+          de prod exactement (rien à isoler).
+        required: false
+        type: string
+        default: ""
+      prod_check_cmd:
+        description: >-
+          Commande exécutée juste après prod_install_cmd dans le même venv
+          isolé (ex. un import Python qui déclenche tous les imports de
+          l'app). Prouve qu'aucun import de code applicatif ne dépend d'un
+          paquet présent seulement en CI (dev/test) — un devDependency non
+          détecté ici passerait la CI et casserait la VM, où le rollback
+          serait le seul filet. Ignoré si prod_install_cmd est vide.
+        required: false
+        type: string
+        default: ""
 
 permissions:
   contents: write
@@ -84,6 +106,19 @@ jobs:
 
       - name: Tests
         run: ${{ inputs.test_cmd }}
+
+      - name: Vérifie que les dépendances de PRODUCTION seules suffisent
+        if: inputs.prod_install_cmd != ''
+        # venv isolé : install_cmd a déjà pu installer des paquets de
+        # dev/test dans l'environnement système, qui masqueraient
+        # exactement le défaut que cette étape cherche à détecter.
+        run: |
+          set -eu
+          python3 -m venv /tmp/verif-prod-deps
+          export PATH="/tmp/verif-prod-deps/bin:$PATH"
+          cd "$GITHUB_WORKSPACE"
+          ${{ inputs.prod_install_cmd }}
+          ${{ inputs.prod_check_cmd }}
 
       - name: Déplacer le tag
         if: github.event_name == 'push' || inputs.tag_prod
