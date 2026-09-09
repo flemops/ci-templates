@@ -25,3 +25,12 @@ TAG=prod
 
 # chat_id Telegram destinataire des alertes de rollback pour cette app.
 NOTIF_CHAT=<chat_id>
+
+# Optionnel — dead man's switch Healthchecks (self-hosted, 127.0.0.1:8091).
+# Les 4 apps partagent known_hosts/le script/le jeton Telegram : une panne
+# à ce niveau (clé révoquée, rotation de clé d'hôte GitHub) casse tout en
+# silence AVANT que notifier() ait sa chance. Un ping ici à chaque passage
+# réussi (déploiement ou no-op) fait porter la détection sur le silence
+# plutôt que sur un chemin de code précis. Laisser vide desactive le ping,
+# app-pull.sh continue de fonctionner normalement.
+HC_PING=http://127.0.0.1:8091/ping/<uuid-du-check>

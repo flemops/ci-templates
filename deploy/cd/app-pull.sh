@@ -63,6 +63,10 @@ fi
 APP_USER=""
 NOTIF_CHAT=""
 TAG=prod
+# Optionnel : URL de ping Healthchecks (dead man's switch, voir hc_ping()
+# plus bas). Vide par défaut — une app sans HC_PING dans sa conf continue
+# de fonctionner exactement comme avant, notifier() reste le seul canal.
+HC_PING=""
 
 # shellcheck source=/dev/null
 source "$CONF"
@@ -107,6 +111,19 @@ if ! flock -n 9; then
   journal "déploiement déjà en cours, on passe notre tour"
   exit 0
 fi
+
+# Dead man's switch : les 4 apps partagent known_hosts, ce script et le
+# jeton Telegram (seul vrai couplage inter-apps, voir ETAT-CHANTIERS.md).
+# Une clé de déploiement révoquée ou une rotation de clé d'hôte GitHub
+# casserait les 4 déploiements EN SILENCE — sha_distant() échoue avant
+# notifier() n'ait jamais la moindre chance d'être appelée. Un ping ici à
+# chaque passage réussi (y compris no-op) fait porter la détection à
+# Healthchecks plutôt qu'à ce script : silence prolongé = alerte, peu
+# importe la raison du silence.
+hc_ping() {
+  [ -n "$HC_PING" ] || return 0
+  curl --silent --show-error --max-time 10 --retry 2 --output /dev/null "${HC_PING}${1:-}" || true
+}
 
 notifier() {
   local texte="$1"
@@ -202,22 +219,26 @@ raison        : ${raison}
 rétabli sur   : ${precedent}
 état          : ${etat}
 journal       : journalctl -u app-pull@${APP_NAME} -n 80"
+  hc_ping /fail
   exit 1
 }
 
-cible=$(sha_distant) || { journal "impossible d'interroger le dépôt distant"; exit 1; }
+cible=$(sha_distant) || { journal "impossible d'interroger le dépôt distant"; hc_ping /fail; exit 1; }
 if [ -z "$cible" ]; then
   journal "aucun tag ${TAG} sur le dépôt distant, rien à déployer"
+  hc_ping
   exit 0
 fi
 
 actuel=$(git -C "$REPO_DIR" rev-parse HEAD)
 if [ "$cible" = "$actuel" ]; then
+  hc_ping
   exit 0
 fi
 
 if [ "$cible" = "$(cat "$QUARANTAINE" 2>/dev/null)" ]; then
   journal "commit ${cible} déjà refusé (quarantaine), on attend un nouveau tag"
+  hc_ping
   exit 0
 fi
 
@@ -225,6 +246,7 @@ journal "tag ${TAG} = ${cible}, HEAD = ${actuel} — déploiement"
 
 if ! git -C "$REPO_DIR" fetch --tags --force --prune --quiet origin; then
   journal "git fetch en échec, déploiement abandonné (rien n'a été modifié)"
+  hc_ping /fail
   exit 1
 fi
 
@@ -237,3 +259,4 @@ if ! sain; then
 fi
 
 journal "déploiement OK : ${actuel} -> ${cible}"
+hc_ping
