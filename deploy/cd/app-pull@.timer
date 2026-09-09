@@ -10,6 +10,13 @@ AccuracySec=10s
 # Pas de Persistent=true : rattraper les passages manqués n'a aucun sens pour
 # un contrôle qui se réduit à « le tag a-t-il bougé ». Le prochain passage
 # suffit.
+#
+# RandomizedDelaySec : sans lui, OnBootSec=2min identique pour les 4
+# instances (une par app) les fait sonner groupées après chaque redémarrage
+# de la VM — 4 `npm ci`/`pip install` simultanés sur un ARM à ressources
+# bornées. 60s de dispersion suffit, la cadence normale (toutes les 2 min)
+# n'a pas besoin d'être précise à la seconde.
+RandomizedDelaySec=60
 
 [Install]
 WantedBy=timers.target

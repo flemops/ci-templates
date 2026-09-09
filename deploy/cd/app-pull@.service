@@ -9,7 +9,11 @@ ExecStart=/usr/local/bin/app-pull.sh %i
 # Construction + redémarrage + healthcheck : large, mais borné. Sans plafond,
 # un réseau qui pend bloquerait le verrou et gèlerait les déploiements
 # suivants DE CETTE APP (les autres apps ont leur propre verrou/unité).
-TimeoutStartSec=600
+# 900s > pire cas du script (2 x build à 300s + 2 x healthcheck à ~120s =
+# 840s, un rollback enchaîne les deux) : le script doit toujours pouvoir
+# échouer PROPREMENT (quarantaine + notification) avant que systemd ne
+# tue le process sec, ce qui ne laisserait ni l'une ni l'autre derrière lui.
+TimeoutStartSec=900
 # Défense en profondeur : même avec --ignore-scripts / pip sans build isolé,
 # le service reste root (chown/systemctl l'exigent) — on lui interdit au
 # moins de regagner des privilèges qu'il n'a pas déjà.

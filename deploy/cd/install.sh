@@ -20,7 +20,13 @@ if [ "$EUID" -ne 0 ]; then
 fi
 
 echo "==> Script de déploiement générique"
-install -o root -g root -m 700 "$SRC/app-pull.sh" /usr/local/bin/app-pull.sh
+# Passe par un fichier temporaire + rename (atomique, même filesystem) :
+# app-pull.sh peut être en cours d'exécution (systemd, appelé par son
+# propre timer) au moment d'un install.sh relancé pour une mise à jour ;
+# bash relit son script par offset pendant l'exécution.
+TMP_SCRIPT="$(mktemp /usr/local/bin/.app-pull.sh.XXXXXX)"
+install -o root -g root -m 700 "$SRC/app-pull.sh" "$TMP_SCRIPT"
+mv -f "$TMP_SCRIPT" /usr/local/bin/app-pull.sh
 
 echo "==> Unités systemd (template)"
 install -o root -g root -m 644 "$SRC/app-pull@.service" /etc/systemd/system/app-pull@.service

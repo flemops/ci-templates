@@ -45,6 +45,18 @@ if [ ! -r "$CONF" ]; then
   exit 1
 fi
 
+# La conf est "source"-ée telle quelle juste après : n'importe qui pourrait
+# y écrire du shell arbitraire exécuté en root. "Racine 600" n'est qu'une
+# convention documentée ailleurs (app.conf.exemple) tant qu'elle n'est pas
+# vérifiée ici.
+conf_proprio_mode=$(stat -c '%U %a' "$CONF") || { echo "métadonnées illisibles : $CONF" >&2; exit 1; }
+conf_proprio=${conf_proprio_mode%% *}
+conf_mode=${conf_proprio_mode##* }
+if [ "$conf_proprio" != root ] || [ $((8#$conf_mode & 8#077)) -ne 0 ]; then
+  echo "conf refusée : $CONF doit appartenir à root et n'être accessible qu'à lui (trouvé : $conf_proprio $conf_mode)" >&2
+  exit 1
+fi
+
 # Valeurs par défaut avant la conf : APP_USER n'a pas besoin d'être répété
 # quand il est identique au nom du service systemd (le cas des 4 apps
 # actuelles). La conf peut le surcharger si un jour ça change.
@@ -131,9 +143,25 @@ appliquer() {
   # checkout --force --detach fait en une commande ce que « reset --hard »
   # ferait en deux, sans jamais déplacer de branche locale (règle 4).
   git -C "$REPO_DIR" checkout --force --detach --quiet "$sha" || return 1
-  ( cd "$REPO_DIR" && eval "$BUILD_CMD" ) || return 1
-  # git et la construction ont écrit en root ; le service tourne en APP_USER.
+  # Budget interne < TimeoutStartSec du service : un rollback enchaîne DEUX
+  # appliquer() + DEUX sain(). Sans ce plafond, un build anormalement lent
+  # se ferait tuer sec par systemd avant la quarantaine/notification (le
+  # flock est relâché, rien n'est écrit, le tick suivant recommence à
+  # l'identique, en boucle et en silence).
+  timeout 300 bash -c 'cd "$1" && eval "$2"' _ "$REPO_DIR" "$BUILD_CMD" || return 1
+  # git et la construction ont écrit en root ; le service tourne en
+  # APP_USER. Mais .git et un éventuel .venv ne doivent JAMAIS appartenir à
+  # APP_USER : ce sont des chemins que ROOT réexécute au tick suivant (hooks
+  # git, .git/config qui accepte des chemins de commande comme
+  # core.fsmonitor/core.pager, binaires du venv). Un compte applicatif qui
+  # obtiendrait une primitive d'écriture (RCE web, dépendance compromise)
+  # deviendrait root au prochain déploiement — NoNewPrivileges ne protège
+  # pas ici, le service qui exécute est déjà root.
   chown -R "$APP_USER:$APP_USER" "$REPO_DIR" || return 1
+  chown -R root:root "$REPO_DIR/.git" || return 1
+  if [ -d "$REPO_DIR/.venv" ]; then
+    chown -R root:root "$REPO_DIR/.venv" || return 1
+  fi
   systemctl restart "$SERVICE" || return 1
   return 0
 }

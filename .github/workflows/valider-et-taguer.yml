@@ -56,6 +56,10 @@ concurrency:
 jobs:
   valider:
     runs-on: ubuntu-latest
+    # Sans plafond, un test qui boucle (ou attend un réseau qui ne répond
+    # jamais) consommerait des minutes Actions indéfiniment au lieu
+    # d'échouer proprement.
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
 
