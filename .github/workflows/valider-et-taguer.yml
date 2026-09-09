@@ -43,12 +43,14 @@ on:
 permissions:
   contents: write
 
-# Groupe borné au dépôt + au tag visé : deux dépôts différents ou deux tags
-# différents ne se bloquent jamais entre eux ; deux push rapprochés sur le
-# même dépôt/tag s'attendent au lieu de s'annuler (un commit validé ne doit
-# jamais rester promu après un commit plus récent resté en file).
+# Groupe borné au dépôt appelant : deux dépôts différents ne se bloquent
+# jamais entre eux ; deux push rapprochés sur le même dépôt s'attendent au
+# lieu de s'annuler (un commit validé ne doit jamais rester promu après un
+# commit plus récent resté en file). Le contexte `inputs` n'est pas
+# disponible au niveau `concurrency:` d'un reusable workflow (échec de
+# validation du fichier, aucun job créé) — seul `github.*` l'est ici.
 concurrency:
-  group: valider-et-taguer-${{ github.repository }}-${{ inputs.tag_name }}
+  group: valider-et-taguer-${{ github.repository }}
   cancel-in-progress: false
 
 jobs:
