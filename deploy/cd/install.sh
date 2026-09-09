@@ -48,7 +48,14 @@ elif [ -s "$ANCIEN_TOKEN" ]; then
   echo "    repris de $ANCIEN_TOKEN"
 else
   umask 077
-  docker exec n8n sh -c 'umask 077; n8n export:credentials --decrypted --all --output=/tmp/c.json >/dev/null 2>&1; grep -oE "[0-9]{8,}:[A-Za-z0-9_-]{30,}" /tmp/c.json | head -1; rm -f /tmp/c.json' \
+  # trap ... EXIT : le fichier contient TOUS les credentials n8n déchiffrés,
+  # pas seulement le jeton Telegram qu'on en extrait. Un docker exec
+  # interrompu (Ctrl-C, timeout, conteneur redémarré) entre l'export et le
+  # rm -f d'origine les aurait laissés en clair dans /tmp du conteneur
+  # jusqu'au prochain redémarrage. Le trap garantit le nettoyage sur toute
+  # sortie normale de ce sous-shell (pas un SIGKILL dur, mais couvre déjà
+  # Ctrl-C/SIGTERM/fin de docker exec).
+  docker exec n8n sh -c 'umask 077; trap "rm -f /tmp/c.json" EXIT; n8n export:credentials --decrypted --all --output=/tmp/c.json >/dev/null 2>&1; grep -oE "[0-9]{8,}:[A-Za-z0-9_-]{30,}" /tmp/c.json | head -1' \
     > "$TOKEN_FILE" || true
   chmod 600 "$TOKEN_FILE"
   if ! grep -qE '^[0-9]{8,}:[A-Za-z0-9_-]{30,}$' "$TOKEN_FILE"; then
