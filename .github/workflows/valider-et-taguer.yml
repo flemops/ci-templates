@@ -1,0 +1,88 @@
+name: Valider et taguer (réutilisable)
+
+# Appelé en workflow_call par le prod-tag.yml de chaque dépôt applicatif.
+# Ne connaît rien de la VM : il valide (install + lint + tests) et, si ça
+# passe, déplace un tag sur le commit validé. Aucun secret d'accès à une VM
+# n'est manipulé ici — voir deploy/cd/ pour la moitié « pull » côté serveur.
+
+on:
+  workflow_call:
+    inputs:
+      runtime:
+        description: "node ou python"
+        required: true
+        type: string
+      version:
+        description: "Version passée à setup-node / setup-python"
+        required: true
+        type: string
+      install_cmd:
+        description: "Commande d'installation des dépendances"
+        required: true
+        type: string
+      test_cmd:
+        description: "Commande de test (obligatoire — sans elle le tag ne prouve rien)"
+        required: true
+        type: string
+      lint_cmd:
+        description: "Commande de lint, optionnelle"
+        required: false
+        type: string
+        default: ""
+      tag_name:
+        description: "Nom du tag déplacé après succès"
+        required: false
+        type: string
+        default: "prod"
+      tag_prod:
+        description: "Déplacer le tag même hors push (workflow_dispatch)"
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+# Groupe borné au dépôt + au tag visé : deux dépôts différents ou deux tags
+# différents ne se bloquent jamais entre eux ; deux push rapprochés sur le
+# même dépôt/tag s'attendent au lieu de s'annuler (un commit validé ne doit
+# jamais rester promu après un commit plus récent resté en file).
+concurrency:
+  group: valider-et-taguer-${{ github.repository }}-${{ inputs.tag_name }}
+  cancel-in-progress: false
+
+jobs:
+  valider:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - if: inputs.runtime == 'node'
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ inputs.version }}
+          cache: npm
+
+      - if: inputs.runtime == 'python'
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ inputs.version }}
+          cache: pip
+
+      - name: Dépendances
+        run: ${{ inputs.install_cmd }}
+
+      - name: Lint
+        if: inputs.lint_cmd != ''
+        run: ${{ inputs.lint_cmd }}
+
+      - name: Tests
+        run: ${{ inputs.test_cmd }}
+
+      - name: Déplacer le tag
+        if: github.event_name == 'push' || inputs.tag_prod
+        run: |
+          set -eu
+          git tag --force "${{ inputs.tag_name }}" "$GITHUB_SHA"
+          git push --force origin "refs/tags/${{ inputs.tag_name }}"
+          echo "tag ${{ inputs.tag_name }} -> $GITHUB_SHA"

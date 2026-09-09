@@ -1,0 +1,27 @@
+# /etc/app-deploy/<app>.conf — une conf par application, lue par
+# /usr/local/bin/app-pull.sh <app> (voir app-pull@<app>.timer).
+# Racine 600, pas de secret dedans (le jeton Telegram est ailleurs, partagé :
+# /etc/app-deploy/telegram_token).
+
+REPO_DIR=/opt/<app>
+SERVICE=<app>
+# APP_USER : optionnel, défaut = SERVICE (vrai pour les 4 apps actuelles).
+# APP_USER=<app>
+
+# Clé de déploiement dédiée à ce dépôt (une par dépôt — jamais celle d'un
+# autre projet, voir vm-cles-deploiement-github). Chemin variable selon
+# l'app : /home/ubuntu/.ssh/id_<app> pour la plupart, mais peut vivre dans le
+# home du compte applicatif (ex. mindmap).
+DEPLOY_KEY=/home/ubuntu/.ssh/id_<app>
+
+# Commande de construction, exécutée dans REPO_DIR après le checkout.
+# Node   : npm ci --omit=dev --ignore-scripts --no-audit --no-fund
+# Python : /opt/<app>/.venv/bin/pip install --no-cache-dir -q -r requirements.txt
+BUILD_CMD='npm ci --omit=dev --ignore-scripts --no-audit --no-fund'
+
+HEALTH_URL=http://127.0.0.1:PORT/health
+
+TAG=prod
+
+# chat_id Telegram destinataire des alertes de rollback pour cette app.
+NOTIF_CHAT=<chat_id>

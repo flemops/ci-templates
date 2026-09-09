@@ -1,0 +1,15 @@
+[Unit]
+Description=Vérifie toutes les 2 minutes si le tag prod de %i a bougé
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=2min
+# Le défaut (1 min) rendrait la cadence réelle irrégulière ; 10 s suffit et
+# laisse systemd regrouper les réveils.
+AccuracySec=10s
+# Pas de Persistent=true : rattraper les passages manqués n'a aucun sens pour
+# un contrôle qui se réduit à « le tag a-t-il bougé ». Le prochain passage
+# suffit.
+
+[Install]
+WantedBy=timers.target
