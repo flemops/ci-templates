@@ -83,16 +83,16 @@ jobs:
     # d'échouer proprement.
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - if: inputs.runtime == 'node'
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: ${{ inputs.version }}
           cache: npm
 
       - if: inputs.runtime == 'python'
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ inputs.version }}
           cache: pip
