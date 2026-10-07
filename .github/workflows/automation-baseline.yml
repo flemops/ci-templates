@@ -75,8 +75,15 @@ jobs:
         with:
           fetch-depth: 1
 
-      - name: Setup Node with cache
-        if: inputs.ecosystem == 'node' && inputs.node_cache != 'none'
+      - name: Setup Node with cache (default lockfile)
+        if: inputs.ecosystem == 'node' && inputs.node_cache != 'none' && inputs.node_cache_dependency_path == ''
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: ${{ inputs.node_version }}
+          cache: ${{ inputs.node_cache }}
+
+      - name: Setup Node with cache (custom lockfile)
+        if: inputs.ecosystem == 'node' && inputs.node_cache != 'none' && inputs.node_cache_dependency_path != ''
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: ${{ inputs.node_version }}
