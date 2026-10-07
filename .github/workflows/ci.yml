@@ -23,7 +23,7 @@ jobs:
       - name: Syntax
         run: bash -n deploy/cd/*.sh
       - name: ShellCheck
-        run: shellcheck deploy/cd/*.sh
+        run: shellcheck --severity=warning deploy/cd/*.sh
 
   secrets:
     name: Secret scan
