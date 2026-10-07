@@ -9,7 +9,7 @@ SERVICE=<app>
 # APP_USER=<app>
 
 # Clé de déploiement dédiée à ce dépôt (une par dépôt — jamais celle d'un
-# autre projet, voir vm-cles-deploiement-github). Chemin variable selon
+# autre projet). Chemin variable selon
 # l'app : /home/ubuntu/.ssh/id_<app> pour la plupart, mais peut vivre dans le
 # home du compte applicatif (ex. mindmap).
 DEPLOY_KEY=/home/ubuntu/.ssh/id_<app>

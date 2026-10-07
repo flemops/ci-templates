@@ -11,3 +11,6 @@ Versionnage : [SemVer](https://semver.org/lang/fr/). Un consommateur référence
 
 ## Avant 1.0.0
 Voir l'historique Git (`4a48712` : actions v7 ; `ee83ba4` : vérification des dépendances de production).
+
+## Note de publication (07/10/2026)
+Le dépôt a été rendu public sous cette forme ; l'historique antérieur à la publication a été assaini (identifiant de messagerie personnel retiré de `app.conf.exemple`). Les SHA des releases ont changé à cette occasion : les consommateurs ont été réépinglés.

@@ -2,8 +2,8 @@
 # Déploiement continu générique — moitié VM du dispositif, pour toute
 # application dont la conf existe dans /etc/app-deploy/<app>.conf.
 #
-# Généralisé depuis portfolio-pull.sh (flemops/portfolio.hamdy-tabsissi.com,
-# PR #6/#7). GitHub Actions valide un commit puis déplace un tag ; ce script,
+# Généralisé depuis un script de déploiement dédié à une première application.
+# GitHub Actions valide un commit puis déplace un tag ; ce script,
 # lancé par app-pull@<app>.timer toutes les 2 minutes, compare ce tag distant
 # au HEAD local et ne fait rien tant qu'ils sont identiques. C'est la VM qui
 # va chercher : aucun port entrant n'est ouvert et aucun identifiant d'accès
@@ -113,7 +113,7 @@ if ! flock -n 9; then
 fi
 
 # Dead man's switch : les 4 apps partagent known_hosts, ce script et le
-# jeton Telegram (seul vrai couplage inter-apps, voir ETAT-CHANTIERS.md).
+# jeton Telegram (seul vrai couplage inter-apps).
 # Une clé de déploiement révoquée ou une rotation de clé d'hôte GitHub
 # casserait les 4 déploiements EN SILENCE — sha_distant() échoue avant
 # notifier() n'ait jamais la moindre chance d'être appelée. Un ping ici à
