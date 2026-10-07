@@ -1,0 +1,126 @@
+name: Automation baseline (reusable)
+
+on:
+  workflow_call:
+    inputs:
+      ecosystem:
+        description: "node | python | docs"
+        required: true
+        type: string
+      node_version:
+        required: false
+        type: string
+        default: "22"
+      node_cache:
+        description: "npm | yarn | pnpm | none"
+        required: false
+        type: string
+        default: "npm"
+      node_cache_dependency_path:
+        description: "Optional lockfile path for setup-node cache"
+        required: false
+        type: string
+        default: ""
+      python_version:
+        required: false
+        type: string
+        default: "3.12"
+      install_cmd:
+        required: false
+        type: string
+        default: ""
+      lint_cmd:
+        required: false
+        type: string
+        default: ""
+      test_cmd:
+        required: false
+        type: string
+        default: ""
+      build_cmd:
+        required: false
+        type: string
+        default: ""
+      audit_cmd:
+        required: false
+        type: string
+        default: ""
+
+permissions:
+  contents: read
+
+concurrency:
+  group: automation-baseline-${{ github.repository }}-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: Quality baseline
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Validate inputs
+        shell: bash
+        run: |
+          case "${{ inputs.ecosystem }}" in
+            node|python|docs) ;;
+            *) echo "::error::ecosystem must be node, python or docs"; exit 2 ;;
+          esac
+          case "${{ inputs.node_cache }}" in
+            npm|yarn|pnpm|none) ;;
+            *) echo "::error::node_cache must be npm, yarn, pnpm or none"; exit 2 ;;
+          esac
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 1
+
+      - name: Setup Node with cache (default lockfile)
+        if: inputs.ecosystem == 'node' && inputs.node_cache != 'none' && inputs.node_cache_dependency_path == ''
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: ${{ inputs.node_version }}
+          cache: ${{ inputs.node_cache }}
+
+      - name: Setup Node with cache (custom lockfile)
+        if: inputs.ecosystem == 'node' && inputs.node_cache != 'none' && inputs.node_cache_dependency_path != ''
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: ${{ inputs.node_version }}
+          cache: ${{ inputs.node_cache }}
+          cache-dependency-path: ${{ inputs.node_cache_dependency_path }}
+
+      - name: Setup Node without cache
+        if: inputs.ecosystem == 'node' && inputs.node_cache == 'none'
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: ${{ inputs.node_version }}
+
+      - if: inputs.ecosystem == 'python'
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: ${{ inputs.python_version }}
+          cache: pip
+          cache-dependency-path: |
+            requirements*.txt
+            pyproject.toml
+
+      - name: Install
+        if: inputs.install_cmd != ''
+        run: ${{ inputs.install_cmd }}
+
+      - name: Lint
+        if: inputs.lint_cmd != ''
+        run: ${{ inputs.lint_cmd }}
+
+      - name: Test
+        if: inputs.test_cmd != ''
+        run: ${{ inputs.test_cmd }}
+
+      - name: Build
+        if: inputs.build_cmd != ''
+        run: ${{ inputs.build_cmd }}
+
+      - name: Dependency audit
+        if: inputs.audit_cmd != ''
+        run: ${{ inputs.audit_cmd }}

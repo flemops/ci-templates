@@ -40,6 +40,11 @@ jobs:
       test_cmd: python -m pytest
 ```
 
+
+### `.github/workflows/automation-baseline.yml` (workflow_call)
+
+Socle CI générique à faible coût pour les dépôts qui n'ont pas besoin du mécanisme de tag `prod`. Il accepte `node`, `python` ou `docs`, valide strictement les entrées, permet de configurer/désactiver le cache Node, puis exécute uniquement les commandes demandées (installation, lint, tests, build, audit). Les scans de secrets restent volontairement dans les dépôts consommateurs : leurs permissions et leur politique diffèrent selon le dépôt.
+
 ### `deploy/cd/` (côté VM)
 
 - `app-pull.sh` — un script, une configuration par application (`/etc/app-deploy/<app>.conf`) ; verrou, quarantaine et unité systemd sont **par application** : l'échec d'une application ne bloque jamais les autres.
@@ -58,13 +63,13 @@ Règles non négociables du script : ne jamais toucher à la configuration nginx
 - **Référence immuable** : un appel pointe sur le SHA complet d'une release (`@<sha>  # v1.0.0`), jamais `@master` — le workflow déplace le tag `prod`, qui commande un déploiement.
 - **Compatibilité** : dans une version `1.x`, les entrées existantes ne sont ni renommées ni retirées ; une entrée ajoutée est facultative avec un défaut. Tout changement incompatible = version majeure, décrit dans [CHANGELOG.md](CHANGELOG.md).
 - **Mettre à jour un consommateur** : branche, remplacer le SHA, déclencher le workflow sur la branche, merger si vert, contrôler le déploiement réel. Un dépôt à la fois.
-- **Actions tierces** : épinglées par SHA vérifié sur le tag de release officiel (commentaire `# vX.Y.Z`). Mise à jour : `gh api repos/<action>/git/ref/tags/<tag>`, éditer, tester depuis un consommateur.
+- **Actions tierces** : épinglées par SHA vérifié sur le tag de release officiel (commentaire `# vX.Y.Z`). Dependabot propose mensuellement les mises à jour ; chaque PR reste à relire et tester avant fusion.
 
 ## Limites
 
 - Conçu pour une VM unique et des applications Node ou Python ; pas de multi-environnement ni de déploiement progressif.
 - Les notifications d'échec passent par Telegram ; sans jeton configuré, le déploiement fonctionne mais un retour arrière n'est pas notifié.
-- Pas de tests automatisés propres à ce dépôt : il est validé par l'exécution réelle depuis ses consommateurs.
+- Le dépôt valide automatiquement la syntaxe/ShellCheck des scripts de déploiement et scanne les secrets ; le comportement de déploiement complet reste validé depuis les consommateurs et la VM.
 - `install.sh` peut extraire le jeton Telegram des identifiants d'une instance n8n locale (chemin de migration propre à cette installation) : à adapter ailleurs.
 
 ## Licence
