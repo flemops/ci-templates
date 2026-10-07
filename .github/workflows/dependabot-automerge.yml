@@ -1,0 +1,29 @@
+name: Dependabot auto-merge (GitHub Actions, patch/minor)
+
+# Active l'auto-merge uniquement pour les PR Dependabot de l'écosystème
+# github-actions, hors mise à jour majeure. La fusion n'a lieu qu'une fois
+# les checks requis (protection de branche) verts. Aucun checkout : la PR
+# n'est jamais exécutée.
+on:
+  pull_request_target:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  automerge:
+    if: github.event.pull_request.user.login == 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - id: meta
+        uses: dependabot/fetch-metadata@25dd0e34f4fe68f24cc83900b1fe3fe149efef98  # v3.1.0
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - if: >-
+          steps.meta.outputs.package-ecosystem == 'github_actions' &&
+          steps.meta.outputs.update-type != 'version-update:semver-major'
+        run: gh pr merge --auto --squash "$PR_URL"
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
