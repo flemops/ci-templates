@@ -26,7 +26,7 @@ permissions:
 
 jobs:
   ci:
-    uses: flemops/ci-templates/.github/workflows/valider-et-taguer.yml@master
+    uses: flemops/ci-templates/.github/workflows/valider-et-taguer.yml@<SHA-complet-de-la-release>  # v1.0.0
     with:
       runtime: python        # ou node
       version: "3.10"
@@ -69,3 +69,11 @@ Quatre règles reprises à l'identique du portfolio (non négociables) :
 (`builderz-labs/mission-control`) : impossible d'y ajouter un workflow sans
 risquer un conflit avec le upstream. Non implémenté ici — voir
 `ETAT-CHANTIERS.md` du dépôt `atelier-claude` pour la décision.
+
+## Versionnage, compatibilité et mises à jour
+
+- **Référence immuable** : un appel pointe sur le SHA complet d'une release (`@<sha>  # v1.0.0`). `@master` n'est plus utilisé : le workflow déplace le tag `prod`, qui commande un déploiement — un commit inattendu sur `master` ne doit pas pouvoir l'influencer.
+- **Compatibilité** : les entrées (`inputs`) existantes ne sont ni renommées ni retirées dans une version `1.x`. Une entrée ajoutée est facultative avec un défaut. Tout changement incompatible = version majeure, documenté dans [CHANGELOG.md](CHANGELOG.md).
+- **Mettre à jour un consommateur** : créer une branche, remplacer le SHA par celui de la release visée, ouvrir une PR — le workflow s'exécute sur la PR — merger seulement si la CI est verte, puis contrôler le déploiement réel. Un dépôt à la fois.
+- **Actions tierces** : épinglées par SHA vérifié sur le tag de release officiel (commentaire `# vX.Y.Z` à côté). Mise à jour : relever le SHA du nouveau tag (`gh api repos/<action>/git/ref/tags/<tag>`), éditer, tester depuis un consommateur.
+- **Visibilité** : ce dépôt est privé. L'historique contient un identifiant personnel (désormais retiré du HEAD) : une publication nécessiterait de réécrire l'historique, ce qui casserait les SHA épinglés des consommateurs. La preuve publique équivalente est le dépôt [`eventmap`](https://github.com/flemops/eventmap), qui appelle ce workflow.
