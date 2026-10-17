@@ -1,6 +1,6 @@
 # ci-templates
 
-Workflow GitHub Actions réutilisable et script de déploiement **pull-based** utilisés pour livrer les applications d'une même machine virtuelle. Catégorie : support DevOps · état : actif, utilisé en production par 4 dépôts (dont [`eventmap`](https://github.com/flemops/eventmap), public).
+Workflow GitHub Actions réutilisable et script de déploiement **pull-based** utilisés pour livrer les applications d'une même machine virtuelle. Catégorie : support DevOps · état : actif, utilisé en production par 4 dépôts (dont [`eventmap`](https://github.com/flemops/eventmap.hamdy-tabsissi.com), public).
 
 ## Problème
 
@@ -55,7 +55,7 @@ Règles non négociables du script : ne jamais toucher à la configuration nginx
 
 ## Preuve
 
-- Les workflows des dépôts appelants (`prod-tag.yml`) et leurs exécutions sont publics pour `eventmap` : [exécutions « Prod gate »](https://github.com/flemops/eventmap/actions/workflows/prod-tag.yml).
+- Les workflows des dépôts appelants (`prod-tag.yml`) et leurs exécutions sont publics pour `eventmap` : [exécutions « Prod gate »](https://github.com/flemops/eventmap.hamdy-tabsissi.com/actions/workflows/prod-tag.yml).
 - Un retour arrière a été exercé en réel lors de la mise en place (journal interne ; non reproduit ici).
 
 ## Versionnage, compatibilité et mises à jour
